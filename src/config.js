@@ -5,8 +5,10 @@ module.exports = {
   version: '0.0.1',
   env: process.env.NODE_ENV || 'development',
   db: {
-    uri: 'mongodb://127.0.0.1:27017/api'
+    uri: 'mongodb://127.0.0.1:27017/mmt'
   },
-  errors_log_file: './log/errors.log',
-  info_log_file: './log/info.log'
+  errorLogFile: './log/errors.log',
+  infoLogFile: './log/info.log',
+  amqpChannelName: 'mm_incoming'
 };
+

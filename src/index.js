@@ -3,24 +3,131 @@
 /**
  * Module Dependencies
  */
-const config        = require('./config'),
-      mongoose      = require('mongoose'),
-      winston       = require('winston');
+const config        = require('./config');
+const mongoose      = require('mongoose');
+const winston       = require('winston');
+const amqp          = require('amqplib/callback_api');
+const Joi           = require('joi');
 
-const User = require('./models/talk');
+const Talk = require('./models/talk');
 
+/**
+ * Configure logger
+ */
 global.log = new winston.Logger({
   transports: [
     new winston.transports.File({
+      name: 'info-file',
       level: 'info',
-      filename: config.info_log_file
+      filename: config.infoLogFile
     }),
     new winston.transports.File({
+      name: 'error-file',
       level: 'error',
-      filename: config.error_log_file
+      filename: config.errorLogFile
     })
   ]
 });
 
+/**
+ * Configure object validator
+ */
+var talkMessageSchema = Joi.object().keys({
+  service: Joi.string().required(),
+  user: Joi.string().required(),
+  text: Joi.string().required()
+}).with('name', 'age');
+
+/**
+ * Start message receiver
+ */
+log.info('Starting message receiver');
+amqp.connect('amqp://localhost', function(err, conn) {
+
+  mongoose.connection.on('error', function(err) {
+    log.error('Mongoose default connection error: ' + err);
+    process.exit(1)
+  });
+
+  mongoose.connection.on('open', function(err) {
+
+    if (err) {
+      log.error('Mongoose default connection error: ' + err);
+      process.exit(1)
+    }
+
+  });
+
+  global.db = mongoose.connect(config.db.uri);
 
 
+  conn.createChannel(function(err, ch) {
+
+    ch.assertQueue(config.amqpChannelName, {durable: true});
+    ch.prefetch(1);
+
+    log.info('Waiting for messages');
+    ch.consume(config.amqpChannelName, function(msg) {
+      var msgText = msg.content.toString();
+      log.info("Received %s", msgText);
+
+      try {
+        var talkMessage = JSON.parse(msgText);
+      } catch (e) {
+        log.error('Error parsing message from json %s', msgText);
+        ch.ack(msg);
+        return
+      }
+
+      Joi.validate(talkMessage, talkMessageSchema, function (err, value) {
+        if(err) {
+          log.error('Validating %s throws %s', msgText, err);
+          ch.ack(msg);
+          return
+        }
+
+        Talk.findOne({ user: talkMessage.user, service: talkMessage.service }, function(err, doc) {
+
+          if (err) {
+            log.error(err);
+            return
+          }
+
+          if (!doc) {
+            log.info('Creating new Talk for %s', msgText);
+            var talk = new Talk({
+              service: talkMessage.service,
+              user: talkMessage.user,
+              status: 'new',
+              messages: [{
+                direction: 'in',
+                text: talkMessage.text
+              }]
+            });
+            talk.save(function(err, doc) {
+              if (err) {
+                log.error(err);
+              } else {
+                ch.ack(msg);
+              }
+            })
+          } else {
+            var newMessage = {
+              direction: 'in',
+              text: talkMessage.text
+            };
+            Talk.update({ _id: doc._id }, { $push: {messages: newMessage} }, function(err) {
+              if (err) {
+                log.error(err);
+              } else {
+                ch.ack(msg);
+              }
+            })
+          }
+        })
+
+      });
+    }, {noAck: false});
+
+  });
+});

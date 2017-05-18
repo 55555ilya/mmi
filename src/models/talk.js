@@ -18,15 +18,23 @@ const TalkSchema = new mongoose.Schema({
   },
   messages: [
     {
-      direction: String,
-      text: String,
-      created: DateTime
+      direction: {
+        type: String,
+        required: true
+      },
+      text: {
+        type: String,
+        required: true
+      },
+      created: {
+        type : Date,
+        default: Date.now
+      }
     }
   ]
 }, { minimize: false });
 
+TalkSchema.plugin(createdModified, { index: true });
 
-TalkSchema.plugin(createdModified, { index: true })
-
-const Talk = mongoose.model('Talk', TalkSchema)
+const Talk = mongoose.model('Talk', TalkSchema);
 module.exports = Talk;
