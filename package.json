@@ -1,0 +1,16 @@
+{
+  "name": "mmi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "mongoose": "^4.9.10",
+    "mongoose-createdmodified": "0.0.2",
+    "winston": "^2.3.1"
+  }
+}
