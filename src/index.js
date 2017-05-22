@@ -35,6 +35,7 @@ global.log = new winston.Logger({
 var talkMessageSchema = Joi.object().keys({
   service: Joi.string().required(),
   user: Joi.string().required(),
+  agent: Joi.string().required(),
   text: Joi.string().required()
 }).with('name', 'age');
 
@@ -86,7 +87,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
           return
         }
 
-        Talk.findOne({ user: talkMessage.user, service: talkMessage.service }, function(err, doc) {
+        Talk.findOne({ user: talkMessage.user, agent: talkMessage.agent, service: talkMessage.service }, function(err, doc) {
 
           if (err) {
             log.error(err);
@@ -98,6 +99,8 @@ amqp.connect('amqp://localhost', function(err, conn) {
             var talk = new Talk({
               service: talkMessage.service,
               user: talkMessage.user,
+              agent: talkMessage.agent,
+              answered: false,
               status: 'new',
               messages: [{
                 direction: 'in',
@@ -116,7 +119,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
               direction: 'in',
               text: talkMessage.text
             };
-            Talk.update({ _id: doc._id }, { $push: {messages: newMessage} }, function(err) {
+            Talk.update({ _id: doc._id }, { $set: {answered: false}, $push: {messages: newMessage} }, function(err) {
               if (err) {
                 log.error(err);
               } else {

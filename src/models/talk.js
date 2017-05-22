@@ -1,7 +1,7 @@
 'use strict'
 
-const mongoose = require('mongoose'),
-      createdModified = require('mongoose-createdmodified').createdModifiedPlugin;
+const mongoose = require('mongoose');
+const createdModified = require('mongoose-createdmodified').createdModifiedPlugin;
 
 const TalkSchema = new mongoose.Schema({
   service: {
@@ -12,14 +12,25 @@ const TalkSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  status: {
+  agent: {
     type: String,
     required: true
+  },
+  status: {
+    type: String,
+    enum: ['new', 'ongoing', 'finished'],
+    required: true
+  },
+  answered: {
+    type: Boolean,
+    required: true,
+    default: false
   },
   messages: [
     {
       direction: {
         type: String,
+        enum: ['in', 'out'],
         required: true
       },
       text: {
