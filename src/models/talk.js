@@ -19,6 +19,12 @@ const TalkSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['new', 'ongoing', 'finished'],
+    default: ['new'],
+    required: true
+  },
+  busy: {
+    type: Boolean,
+    default: false,
     required: true
   },
   answered: {

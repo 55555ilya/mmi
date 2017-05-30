@@ -7,7 +7,7 @@ const config        = require('./config');
 const mongoose      = require('mongoose');
 const winston       = require('winston');
 const amqp          = require('amqplib/callback_api');
-const Joi           = require('joi');
+const joi           = require('joi');
 
 const Talk = require('./models/talk');
 
@@ -32,11 +32,11 @@ global.log = new winston.Logger({
 /**
  * Configure object validator
  */
-var talkMessageSchema = Joi.object().keys({
-  service: Joi.string().required(),
-  user: Joi.string().required(),
-  agent: Joi.string().required(),
-  text: Joi.string().required()
+var talkMessageSchema = joi.object().keys({
+  service: joi.string().required(),
+  user: joi.string().required(),
+  agent: joi.string().required(),
+  text: joi.string().required()
 }).with('name', 'age');
 
 /**
@@ -80,7 +80,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
         return
       }
 
-      Joi.validate(talkMessage, talkMessageSchema, function (err, value) {
+      joi.validate(talkMessage, talkMessageSchema, function (err, value) {
         if(err) {
           log.error('Validating %s throws %s', msgText, err);
           ch.ack(msg);
@@ -102,6 +102,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
               agent: talkMessage.agent,
               answered: false,
               status: 'new',
+              busy: false,
               messages: [{
                 direction: 'in',
                 text: talkMessage.text
